@@ -1,0 +1,15 @@
+create users:
+  connect_to_git: connect_to_git.py
+  create_user_on_linux_and_ssh_access: create_user_on_linux_and_ssh_access.py
+  delete_user: delete_user.py
+  farshmak: ssh_manager.py
+  for_i_cmd: for_i_cmd.py
+  get_user_list: get_user_list.py
+  new: new
+  open_file_and_write_users: open_file_and_write_users.py
+  test: test
+  try: try.py
+  users.yml: users.yml
+don't delete user:
+- gisops
+- video0
