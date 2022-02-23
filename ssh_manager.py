@@ -3,53 +3,37 @@ import os
 import yaml
 
 filename = 'users.yml'
+path_to_keys = '/var/run/work_keys/'
+path_home_dir = '/home/'
 
-create_dir = subprocess.run(["mkdir", "/var/run/work_keys"])
-get_git_key = subprocess.run(["git", "clone", "git@github.com:renvissvnce/work_keys.git", "/var/run/work_keys"])
-
-cmd = ['ls /var/run/work_keys/']
-cmd_usr = ['ls /home/']
+create_dir = os.mkdir(path_to_keys)
+get_git_key = subprocess.run(["git", "clone", "git@github.com:renvissvnce/work_keys.git", path_to_keys])
 
 # show linux users
-user_linux = subprocess.check_output(cmd_usr, shell=True)
-list_user_linux = user_linux.decode().splitlines()
+user_linux = os.listdir(path_home_dir)
 # show pub keys
-create_list_of_users = subprocess.check_output(cmd, shell=True)
-user_list_decode = create_list_of_users.decode().splitlines()
-
-
-
-def add_new_user_yaml():
-    for_keys = []
-    for_values = []
-    yaml_user_dict = dict()
-
-    for linux_username in user_list_decode:
-        if linux_username in ['gisops', 'video0']:
-            pass
-        else:
-            converting = linux_username.split('.py')[0]
-            for_keys.append(converting)
-
-    for paths_to_key in user_list_decode:
-        for_values.append('/var/run/work_keys/'+paths_to_key)
-
-    for items in range(len(for_keys)):
-        yaml_user_dict[for_keys[items]] = for_values[items]
-
-    return yaml_user_dict
+create_list_of_users = [f for f in os.listdir(path_to_keys) if not f.startswith('.')]
 
 
 def write_file(file):
+    yaml_user_dict = dict()
+
+    for linux_username in create_list_of_users:
+        if linux_username in ['gisops', 'video0']:
+            pass
+        else:
+            converting = linux_username.split('.pub')[0]
+            path_to_file = path_to_keys + linux_username
+            yaml_user_dict[converting] = path_to_file
+
     with open(file, 'w') as f:
         data = {
-            'create users': add_new_user_yaml(),
-            'don\'t delete user': ['gisops', 'video0']
-                }
+            'create users': yaml_user_dict,
+            'don\'t delete user': ['gisops', 'video0', '.git']
+        }
         yaml.dump(data, f)
-write_file(filename)
 
-# проверка на создание пользователя или удаление
+write_file(filename)
 
 
 def run_sudo_usr(command: list):
@@ -62,21 +46,20 @@ def run_sudo_usr(command: list):
             print('Step {} - something is wrong'.format(i))
 
 
-for git_username in user_list_decode:
-    username = git_username.split('.pub')
-    path = '/home/' + username[0] + '/.ssh/'
+def get_cmd(username):
+    path = path_home_dir + username + '/.ssh/'
     home_path = os.path.join(path)
-    add_usr = ['useradd', '-m', username[0]]
-    delete_passwd = ['passwd', '-d', username[0]]
+    add_usr = ['useradd', '-m', username]
+    delete_passwd = ['passwd', '-d', username]
     dir_ssh = ['mkdir', home_path]
-    change_owner = ['chown', '-R', username[0], home_path]
+    change_owner = ['chown', '-R', username, home_path]
     change_mode = ['chmod', '700', home_path]
-    auth_key = ['cp', '/var/run/work_keys/' + git_username, home_path + 'authorized_keys']
+    auth_key = ['cp', path_to_keys + username + '.pub', home_path + 'authorized_keys']
     cmd_create_user = [add_usr, delete_passwd, dir_ssh, change_owner, change_mode, auth_key]
+    return cmd_create_user
 
 
 def check_user_list():
-
     with open(filename) as f:
         data = yaml.load(f, Loader=yaml.FullLoader)
         users = data['don\'t delete user']
@@ -85,11 +68,11 @@ def check_user_list():
 
         for key_username in all_items:
             converted = key_username[0]
-            if converted + '.py' in list_user_linux:
+            if converted + '.py' in user_linux:
                 print('just pass this iteration, user - [{}], already created.'.format(converted))
-            elif converted not in list_user_linux:
+            elif converted not in user_linux:
                 print('create user {}'.format(converted))
-                run_sudo_usr(cmd_create_user)
+                run_sudo_usr(get_cmd(converted))
 
         for i in users:
             if i in users:
